@@ -18,9 +18,9 @@ open System.Xml.XPath
 #else
 #r "System.Configuration"
 open System.Configuration
-#load "Fsdk/Misc.fs"
-#load "Fsdk/Process.fs"
-#load "Fsdk/Git.fs"
+#load "../Fsdk/Misc.fs"
+#load "../Fsdk/Process.fs"
+#load "../Fsdk/Git.fs"
 #endif
 open Fsdk
 open Fsdk.Process
