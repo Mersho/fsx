@@ -1,4 +1,4 @@
-namespace GWallet.Scripting
+namespace fsx.Scripting
 
 open System
 open System.IO

@@ -25,8 +25,7 @@ open System.Configuration
 open Fsdk
 open Fsdk.Process
 
-#load "fsxHelper.fs"
-open GWallet.Scripting
+
 
 #if LEGACY_FRAMEWORK
 #r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
@@ -34,6 +33,9 @@ open GWallet.Scripting
 #r "nuget: Microsoft.Build, Version=16.11.0"
 #endif
 open Microsoft.Build.Construction
+let ScriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
+let RootDir = Path.Combine(ScriptsDir.FullName, "..") |> DirectoryInfo
+let NugetSolutionPackagesDir = Path.Combine(RootDir.FullName, "packages") |> DirectoryInfo
 
 
 module MapHelper =
@@ -87,7 +89,7 @@ type private ComparableFileInfo =
         this.File.FullName.GetHashCode ()
 
 let FindOffendingPrintfUsage () =
-    let findScript = Path.Combine (FsxHelper.RootDir.FullName, "scripts", "find.fsx")
+    let findScript = Path.Combine (RootDir.FullName, "scripts", "find.fsx")
     let excludeFolders =
         String.Format (
             "scripts{0}" +
@@ -98,7 +100,19 @@ let FindOffendingPrintfUsage () =
             Path.DirectorySeparatorChar
         )
 
-    let fsxRunnerBin, fsxRunnerArg = FsxHelper.FsxRunnerInfo()
+    let fsxRunnerBin, fsxRunnerArg = 
+        Environment.GetEnvironmentVariable "FsxRunnerBin", 
+        Environment.GetEnvironmentVariable "FsxRunnerArg"
+    if String.IsNullOrEmpty fsxRunnerBin then
+        let msg = "FsxRunnerBin env var not found, it should have been sourced from build.config file"
+        let msgFull =
+            msg + Environment.NewLine +
+            (sprintf "(maybe you 1. %s, or 2. %s, or 3. %s)"
+                "called this from configure.fsx (which is not supported, just use this func from make.fsx or sanitycheck.fsx)"
+                "you meant to run a Makefile target rather than this script directly?"
+                "there is a .sh wrapper script for your .fsx script"
+            )
+        failwith msgFull
     let proc =
         {
             Command = fsxRunnerBin
@@ -117,7 +131,7 @@ let FindOffendingPrintfUsage () =
 let SanityCheckNugetPackages () =
 
     let notPackagesFolder (dir: DirectoryInfo): bool =
-        dir.FullName <> FsxHelper.NugetSolutionPackagesDir.FullName
+        dir.FullName <> NugetSolutionPackagesDir.FullName
 
     let notSubmodule (dir: DirectoryInfo): bool =
         let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
@@ -265,16 +279,16 @@ let SanityCheckNugetPackages () =
 
         let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
             solDir.Refresh ()
-            if not FsxHelper.NugetSolutionPackagesDir.Exists then
+            if not NugetSolutionPackagesDir.Exists then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetSolutionPackagesDir.Name
-                    FsxHelper.NugetSolutionPackagesDir.FullName
-            let packageDirsAbsolutePaths = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
+                    NugetSolutionPackagesDir.Name
+                    NugetSolutionPackagesDir.FullName
+            let packageDirsAbsolutePaths = NugetSolutionPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
             if not (packageDirsAbsolutePaths.Any()) then
                 Console.Error.WriteLine (
                     sprintf "'%s' subdir under solution dir %s doesn't contain any packages"
-                        FsxHelper.NugetSolutionPackagesDir.Name
-                        FsxHelper.NugetSolutionPackagesDir.FullName
+                        NugetSolutionPackagesDir.Name
+                        NugetSolutionPackagesDir.FullName
                 )
                 Console.Error.WriteLine "Maybe you forgot to issue the commands `git submodule sync --recursive && git submodule update --init --recursive`?"
                 Environment.Exit 1
@@ -282,7 +296,7 @@ let SanityCheckNugetPackages () =
             seq {
                 for KeyValue (packageDirNameThatShouldExist, prjs) in idealPackageDirs do
                     let pkgDirToLookFor =
-                        Path.Combine(FsxHelper.NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist)
+                        Path.Combine(NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist)
                         |> DirectoryInfo
                     if not pkgDirToLookFor.Exists then
                         yield packageDirNameThatShouldExist, prjs
@@ -290,17 +304,17 @@ let SanityCheckNugetPackages () =
 
         let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
             solDir.Refresh ()
-            if not (FsxHelper.NugetSolutionPackagesDir.Exists) then
+            if not (NugetSolutionPackagesDir.Exists) then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetSolutionPackagesDir.Name
-                    FsxHelper.NugetSolutionPackagesDir.FullName
+                    NugetSolutionPackagesDir.Name
+                    NugetSolutionPackagesDir.FullName
             // "src" is a directory for source codes and build scripts,
             // not for packages, so we need to exclude it from here
-            let packageDirNames = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
+            let packageDirNames = NugetSolutionPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
             if not (packageDirNames.Any()) then
                 failwithf "'%s' subdir under solution dir %s doesn't contain any packages"
-                    FsxHelper.NugetSolutionPackagesDir.Name
-                    FsxHelper.NugetSolutionPackagesDir.FullName
+                    NugetSolutionPackagesDir.Name
+                    NugetSolutionPackagesDir.FullName
             let packageDirsThatShouldExist = MapHelper.GetKeysOfMap idealPackageDirs
             seq {
                 for packageDirThatExists in packageDirNames do
@@ -422,10 +436,10 @@ let SanityCheckNugetPackages () =
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
     let solutionFileNames = [
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.linux-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.mac-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core.sln")
+        Path.Combine(ScriptsDir.FullName, "../src/gwallet.linux-legacy.sln")
+        Path.Combine(ScriptsDir.FullName, "../src/gwallet.mac-legacy.sln")
+        Path.Combine(ScriptsDir.FullName, "../src/gwallet.core-legacy.sln")
+        Path.Combine(ScriptsDir.FullName, "../src/gwallet.core.sln")
     ]
 
     let solutionFiles = solutionFileNames |> List.map FileInfo
