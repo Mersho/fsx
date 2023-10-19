@@ -92,9 +92,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -123,9 +121,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: fsharpi --define:LEGACY_FRAMEWORK scripts/runUnitTests.fsx
 
@@ -158,9 +154,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -193,9 +187,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -239,9 +231,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
 
     - name: install
       run: |
@@ -287,9 +277,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: fsharpi --define:LEGACY_FRAMEWORK scripts/runUnitTests.fsx
 
@@ -322,9 +310,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -357,9 +343,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -403,9 +387,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
 
     - name: install
       run: |
@@ -451,9 +433,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: fsharpi --define:LEGACY_FRAMEWORK scripts/runUnitTests.fsx
 
@@ -493,9 +473,7 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 
@@ -522,9 +500,7 @@ jobs:
     - name: build in DEBUG mode
       run: .\make.bat
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: .\Tools\fsi.bat scripts\runUnitTests.fsx
 
@@ -552,9 +528,7 @@ jobs:
     - name: build in DEBUG mode
       run: .\make.bat
     - name: sanity check
-      run: |
-        source ./scripts/build.config
-        dotnet fsi scripts/sanitycheck.fsx
+      run: dotnet fsi scripts/sanitycheck.fsx
     - name: run unit tests
       run: dotnet fsi scripts/runUnitTests.fsx
 

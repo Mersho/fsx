@@ -18,9 +18,9 @@ open System.Xml.XPath
 #else
 #r "System.Configuration"
 open System.Configuration
-#load "fsx/Fsdk/Misc.fs"
-#load "fsx/Fsdk/Process.fs"
-#load "fsx/Fsdk/Git.fs"
+#load "Fsdk/Misc.fs"
+#load "Fsdk/Process.fs"
+#load "Fsdk/Git.fs"
 #endif
 open Fsdk
 open Fsdk.Process
@@ -88,45 +88,6 @@ type private ComparableFileInfo =
     override this.GetHashCode () =
         this.File.FullName.GetHashCode ()
 
-let FindOffendingPrintfUsage () =
-    let findScript = Path.Combine (RootDir.FullName, "scripts", "find.fsx")
-    let excludeFolders =
-        String.Format (
-            "scripts{0}" +
-            "src{1}GWallet.Frontend.Console{0}" +
-            "src{1}GWallet.Backend.Tests{0}" +
-            "src{1}GWallet.Backend{1}FSharpUtil.fs",
-            Path.PathSeparator,
-            Path.DirectorySeparatorChar
-        )
-
-    let fsxRunnerBin, fsxRunnerArg = 
-        Environment.GetEnvironmentVariable "FsxRunnerBin", 
-        Environment.GetEnvironmentVariable "FsxRunnerArg"
-    if String.IsNullOrEmpty fsxRunnerBin then
-        let msg = "FsxRunnerBin env var not found, it should have been sourced from build.config file"
-        let msgFull =
-            msg + Environment.NewLine +
-            (sprintf "(maybe you 1. %s, or 2. %s, or 3. %s)"
-                "called this from configure.fsx (which is not supported, just use this func from make.fsx or sanitycheck.fsx)"
-                "you meant to run a Makefile target rather than this script directly?"
-                "there is a .sh wrapper script for your .fsx script"
-            )
-        failwith msgFull
-    let proc =
-        {
-            Command = fsxRunnerBin
-            Arguments = sprintf "%s %s --exclude=%s %s"
-                                fsxRunnerArg
-                                findScript
-                                excludeFolders
-                                "printf failwithf"
-        }
-    let findProcOutput = Process.Execute(proc, Echo.All).UnwrapDefault()
-    if findProcOutput.Trim().Length > 0 then
-        Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected; use SPrintF1/SPrintF2/... instead"
-        Environment.Exit 1
-
 
 let SanityCheckNugetPackages () =
 
@@ -135,16 +96,19 @@ let SanityCheckNugetPackages () =
 
     let notSubmodule (dir: DirectoryInfo): bool =
         let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
-            let regex = Regex("path\s*=\s*([^\s]+)")
-            seq {
-                for regexMatch in regex.Matches (File.ReadAllText (".gitmodules")) do
-                    let submoduleFolderRelativePath = regexMatch.Groups.[1].ToString ()
-                    let submoduleFolder =
-                        DirectoryInfo (
-                            Path.Combine (Directory.GetCurrentDirectory (), submoduleFolderRelativePath)
-                        )
-                    yield submoduleFolder
-            }
+            if File.Exists ".gitmodules" then
+                let regex = Regex("path\s*=\s*([^\s]+)")
+                seq {
+                    for regexMatch in regex.Matches (File.ReadAllText (".gitmodules")) do
+                        let submoduleFolderRelativePath = regexMatch.Groups.[1].ToString ()
+                        let submoduleFolder =
+                            DirectoryInfo (
+                                Path.Combine (Directory.GetCurrentDirectory (), submoduleFolderRelativePath)
+                            )
+                        yield submoduleFolder
+                }
+            else
+                Seq.empty
         not (getSubmoduleDirsForThisRepo().Any (fun d -> dir.FullName = d.FullName))
 
     // this seems to be a bug in Microsoft.Build nuget library, FIXME: report
@@ -436,10 +400,7 @@ let SanityCheckNugetPackages () =
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
     let solutionFileNames = [
-        Path.Combine(ScriptsDir.FullName, "../src/gwallet.linux-legacy.sln")
-        Path.Combine(ScriptsDir.FullName, "../src/gwallet.mac-legacy.sln")
-        Path.Combine(ScriptsDir.FullName, "../src/gwallet.core-legacy.sln")
-        Path.Combine(ScriptsDir.FullName, "../src/gwallet.core.sln")
+        Path.Combine(ScriptsDir.FullName, "../fsx.sln")
     ]
 
     let solutionFiles = solutionFileNames |> List.map FileInfo
@@ -454,25 +415,8 @@ let SanityCheckNugetPackages () =
     if not allFilesExist then
         failwith "Solution files were not found to do sanity check."
 
-    match Misc.GuessPlatform() with
-        // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
-        | Misc.Platform.Linux when "dotnet" = Environment.GetEnvironmentVariable "BuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
-        | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[0]
-        // .NET-only macOS only builds gwallet.core.sln
-        | Misc.Platform.Mac when "dotnet" = Environment.GetEnvironmentVariable "BuildTool"
-            && Environment.GetEnvironmentVariable "LegacyBuildTool" = "" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
-        | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[1]
-
-        | _ (* stockmono linux and windows *) ->
-
-            // TODO: have a windows solution file
-            sanityCheckNugetPackagesFromSolution solutionFiles.[2]
+    sanityCheckNugetPackagesFromSolution solutionFiles.[0]
   
 
-FindOffendingPrintfUsage()
 SanityCheckNugetPackages()
 
